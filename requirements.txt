@@ -1,0 +1,10 @@
+flask
+pymupdf
+langchain
+langchain-community
+langchain-huggingface
+faiss-cpu
+sentence-transformers
+openai
+python-dotenv
+streamlit
