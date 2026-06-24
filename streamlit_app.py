@@ -1,4 +1,10 @@
+import json
+from pathlib import Path
+
 import streamlit as st
+
+from rag.ingest import ingest_pdf
+from rag.query import query_rag, extract_json_report
 
 st.set_page_config(page_title="Chat with a PDF",page_icon="",layout="wide",initial_sidebar_state="expanded")
 
@@ -10,12 +16,14 @@ MODELS = {
     "teuken-7b · german":          "teuken-7b-instruct-research",
 }
 
-def ingest_pdf(f): return f.name
-def query_rag(q, model): return f"pipeline not connected · model: {model} · you asked: '{q}'"
 
 if "messages" not in st.session_state: st.session_state.messages=[]
 if "pdf_loaded" not in st.session_state: st.session_state.pdf_loaded=False
 if "pdf_name" not in st.session_state: st.session_state.pdf_name=None
+if "pdf_path" not in st.session_state: st.session_state.pdf_path=None
+
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 with st.sidebar:
     dark_mode = st.toggle("dark mode", value=True)
@@ -68,37 +76,84 @@ div[data-testid="stSelectbox"] svg{{fill:{MAIN}!important;}}
 </style>""",unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:16px 0 12px"></div>',unsafe_allow_html=True)
-    st.markdown(f'<div style="font-family:monospace;font-size:9px;color:{TEXT3};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Document</div>',unsafe_allow_html=True)
-    uploaded_file=st.file_uploader("",type=["pdf"],label_visibility="collapsed")
-    if uploaded_file is not None:
-        if not st.session_state.pdf_loaded or st.session_state.pdf_name!=uploaded_file.name:
-            with st.spinner(""):
-                st.session_state.pdf_loaded=True
-                st.session_state.pdf_name=uploaded_file.name
-                st.session_state.messages=[]
-    if st.session_state.pdf_loaded:
-        st.markdown(f'<div style="font-family:monospace;font-size:10px;color:{BADGE_COLOR};background:{BADGE_BG};border:0.5px solid {BADGE_BORDER};border-radius:3px;padding:3px 8px;display:inline-block;margin-top:4px">✓ {st.session_state.pdf_name}</div>',unsafe_allow_html=True)
-    else:
-        st.markdown(f'<span style="font-family:monospace;font-size:10px;color:{EMPTY2}">no document loaded</span>',unsafe_allow_html=True)
+    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:16px 0 12px"></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-family:monospace;font-size:9px;color:{TEXT3};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Document</div>', unsafe_allow_html=True)
 
-    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:12px 0"></div>',unsafe_allow_html=True)
-    st.markdown(f'<div style="font-family:monospace;font-size:9px;color:{TEXT3};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Model</div>',unsafe_allow_html=True)
-    selected_label = st.selectbox("",list(MODELS.keys()),label_visibility="collapsed")
+    uploaded_file = st.file_uploader("", type=["pdf"], label_visibility="collapsed")
+
+    if uploaded_file is not None:
+        if not st.session_state.pdf_loaded or st.session_state.pdf_name != uploaded_file.name:
+            pdf_path = UPLOAD_DIR / uploaded_file.name
+
+            with open(pdf_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            with st.spinner("Processing PDF..."):
+                ingest_pdf(str(pdf_path))
+
+            st.session_state.pdf_loaded = True
+            st.session_state.pdf_name = uploaded_file.name
+            st.session_state.pdf_path = str(pdf_path)
+            st.session_state.messages = []
+
+    if st.session_state.pdf_loaded:
+        st.markdown(
+            f'<div style="font-family:monospace;font-size:10px;color:{BADGE_COLOR};background:{BADGE_BG};border:0.5px solid {BADGE_BORDER};border-radius:3px;padding:3px 8px;display:inline-block;margin-top:4px">✓ {st.session_state.pdf_name}</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            f'<span style="font-family:monospace;font-size:10px;color:{EMPTY2}">no document loaded</span>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:12px 0"></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-family:monospace;font-size:9px;color:{TEXT3};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Model</div>', unsafe_allow_html=True)
+
+    selected_label = st.selectbox("", list(MODELS.keys()), label_visibility="collapsed")
     selected_model = MODELS[selected_label]
 
-    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:12px 0"></div>',unsafe_allow_html=True)
-    st.markdown(f'<div style="font-family:monospace;font-size:9px;color:{TEXT3};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Explore</div>',unsafe_allow_html=True)
-    for q in ["CO2 emissions overview","NOX reduction targets","Electric vehicle count","Key risks identified","Strategy and actions"]:
-        if st.button(q,key=q):
+    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:12px 0"></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="font-family:monospace;font-size:9px;color:{TEXT3};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">JSON Export</div>',
+        unsafe_allow_html=True
+    )
+
+    if st.session_state.pdf_loaded:
+        if st.button("generate json report"):
+            with st.spinner("Generating JSON report..."):
+                report = extract_json_report()
+
+            json_content = json.dumps(report, indent=2, ensure_ascii=False)
+
+            st.download_button(
+                label="download json",
+                data=json_content,
+                file_name="report.json",
+                mime="application/json"
+            )
+    else:
+        st.markdown(
+            f'<span style="font-family:monospace;font-size:10px;color:{EMPTY2}">upload document first</span>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:12px 0"></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-family:monospace;font-size:9px;color:{TEXT3};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Explore</div>', unsafe_allow_html=True)
+
+    for q in ["CO2 emissions overview", "NOX reduction targets", "Electric vehicle count", "Key risks identified", "Strategy and actions"]:
+        if st.button(q, key=q):
             if st.session_state.pdf_loaded:
-                st.session_state.messages.append({"role":"user","content":q})
-                answer=query_rag(q,selected_model)
-                st.session_state.messages.append({"role":"assistant","content":answer})
+                st.session_state.messages.append({"role": "user", "content": q})
+                answer = query_rag(q, selected_model)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
                 st.rerun()
 
-    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:12px 0"></div>',unsafe_allow_html=True)
-    if st.button("clear conversation"): st.session_state.messages=[]; st.rerun()
+    st.markdown(f'<div style="height:0.5px;background:{BORDER};margin:12px 0"></div>', unsafe_allow_html=True)
+
+    if st.button("clear conversation"):
+        st.session_state.messages = []
+        st.rerun()
 
 st.markdown(f'<div style="font-size:28px;font-weight:300;color:{MAIN};margin-bottom:4px;letter-spacing:-0.5px">Chat with a PDF.</div>',unsafe_allow_html=True)
 if st.session_state.pdf_loaded:
