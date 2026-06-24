@@ -29,14 +29,14 @@ with st.sidebar:
     dark_mode = st.toggle("dark mode", value=True)
 
 if dark_mode:
-    BG="#0D0F14"; BG2="#0A0C10"; BORDER="#1E2A40"
+    BG="#0D0F14"; BG2="#0A0C10"; BORDER="#1E2A40"; TOGGLE_TRACK="#1E2A40"
     TEXT="#94A3B8"; TEXT2="#475569"; TEXT3="#334155"
     MAIN="#E2E8F0"; UC="#CBD5E1"; AC="#94A3B8"
     BADGE_BG="#04150E"; BADGE_BORDER="#0F4A30"; BADGE_COLOR="#1D9E75"
     EMPTY2="#1E2A40"; MODEL_COLOR="#94A3B8"
     INPUT_BG="#0A0C10"; SUB_COLOR="#475569"
 else:
-    BG="#FAFAFA"; BG2="#F1F5F9"; BORDER="#CBD5E1"
+    BG="#FAFAFA"; BG2="#F1F5F9"; BORDER="#CBD5E1"; TOGGLE_TRACK="#94A3B8"
     TEXT="#334155"; TEXT2="#64748B"; TEXT3="#94A3B8"
     MAIN="#0F172A"; UC="#0F172A"; AC="#475569"
     BADGE_BG="#ECFDF5"; BADGE_BORDER="#6EE7B7"; BADGE_COLOR="#059669"
@@ -52,8 +52,9 @@ st.markdown(f"""
 [data-testid="stSidebar"]{{background-color:{BG2}!important;border-right:0.5px solid {BORDER};}}
 [data-testid="stSidebar"] *{{color:{TEXT}!important;}}
 [data-testid="stSidebar"] label p{{color:{MAIN}!important;}}
-[data-testid="stSidebar"] [data-baseweb="toggle"] div{{background-color:{BORDER}!important;}}
-[data-testid="stSidebar"] [role="checkbox"]{{background-color:{BORDER}!important;border-color:{BORDER}!important;}}
+[data-testid="stSidebar"] [data-baseweb="toggle"] div{{background-color:{TOGGLE_TRACK}!important;border-color:{TOGGLE_TRACK}!important;}}
+[data-testid="stSidebar"] [role="switch"]{{background-color:{TOGGLE_TRACK}!important;border-color:{TOGGLE_TRACK}!important;outline:none!important;}}
+[data-testid="stSidebar"] [role="checkbox"]{{background-color:{TOGGLE_TRACK}!important;border-color:{TOGGLE_TRACK}!important;}}
 [data-testid="stSidebar"] [data-baseweb="checkbox"] span{{color:{MAIN}!important;}}
 [data-testid="stFileUploader"]{{background-color:{BG2}!important;border:0.5px dashed {BORDER}!important;border-radius:4px!important;padding:8px!important;}}
 [data-testid="stFileUploader"] *{{color:{TEXT2}!important;background-color:transparent!important;}}
