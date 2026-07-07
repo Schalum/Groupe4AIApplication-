@@ -49,9 +49,12 @@ def ask_llm(question, chunks, model):
     return response.choices[0].message.content
 
 
-def query_rag(question, model="qwen3-30b-a3b-instruct-2507"):
+def query_rag(question, model="qwen3-30b-a3b-instruct-2507", return_sources=False):
     chunks = retrieve_chunks(question)
     answer = ask_llm(question, chunks, model)
+    
+    if return_sources:
+        return answer, chunks
     return answer
 def extract_json_report(output_path="report.json"):
     # list of fields to extract from the pdf
@@ -80,3 +83,35 @@ def extract_json_report(output_path="report.json"):
 
     print("report saved to " + output_path)
     return report
+
+def summarize_document(model="qwen3-30b-a3b-instruct-2507"):
+    embedder = get_embedder()
+    vectorstore = FAISS.load_local(
+        "vectorstore/",
+        embedder,
+        allow_dangerous_deserialization=True
+    )
+    
+    results = vectorstore.similarity_search("summary overview introduction", k=5)
+    
+    chunks = []
+    for result in results:
+        chunks.append(result.page_content)
+    
+    context = ""
+    for chunk in chunks:
+        context = context + chunk + "\n\n"
+    
+    prompt = "Please provide a comprehensive summary of this document based on the context below.\n\n"
+    prompt = prompt + "Context:\n" + context
+    prompt = prompt + "\nSummary:"
+    
+    client = OpenAI(
+        api_key=os.getenv("GWDG_API_KEY"),
+        base_url="https://chat-ai.academiccloud.de/v1"
+    )
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
