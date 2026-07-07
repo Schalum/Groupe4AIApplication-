@@ -49,7 +49,7 @@ def ask_llm(question, chunks, model):
     return response.choices[0].message.content
 
 
-def query_rag(question, model="meta-llama-3.1-8b-instruct"):
+def query_rag(question, model="qwen3-30b-a3b-instruct-2507"):
     chunks = retrieve_chunks(question)
     answer = ask_llm(question, chunks, model)
     return answer
