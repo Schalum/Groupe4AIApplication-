@@ -20,7 +20,7 @@ st.set_page_config(
 )
 
 MODELS = {
-    "fast" : "meta-llama-3.1-8b-instruct"
+    "fast" : "qwen3-30b-a3b-instruct-2507"
 }
 
 UPLOAD_DIR = Path("uploads")
