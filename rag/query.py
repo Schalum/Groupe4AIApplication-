@@ -6,20 +6,30 @@ from rag.ingest import get_embedder
 
 load_dotenv()
 
-
-def retrieve_chunks(question):
-    # load saved vectors and find the 3 most relevant chunks
+def retrieve_chunks(question, top_k=6):
     embedder = get_embedder()
+
     vectorstore = FAISS.load_local(
         "vectorstore/",
         embedder,
         allow_dangerous_deserialization=True
     )
-    results = vectorstore.similarity_search(question, k=3)
+
+    results = vectorstore.similarity_search(
+        question,
+        k=top_k
+    )
 
     chunks = []
+
     for result in results:
-        chunks.append(result.page_content)
+        chunks.append(
+            {
+                "text": result.page_content,
+                "page": result.metadata.get("page", "?")
+            }
+        )
+
     return chunks
 
 
@@ -27,7 +37,10 @@ def ask_llm(question, chunks, model):
     # combine all chunks into one block of text
     context = ""
     for chunk in chunks:
-        context = context + chunk + "\n\n"
+        context = "\n\n".join(
+            chunk["text"]
+            for chunk in chunks
+        )
 
     # build a better prompt
     prompt = "You are a helpful assistant answering questions about a sustainability report.\n"
@@ -49,12 +62,28 @@ def ask_llm(question, chunks, model):
     return response.choices[0].message.content
 
 
-def query_rag(question, model="qwen3-30b-a3b-instruct-2507", return_sources=False):
-    chunks = retrieve_chunks(question)
+def query_rag(
+    question,
+    model="qwen3-30b-a3b-instruct-2507",
+    top_k=6,
+    return_sources=False,
+):
+    chunks = retrieve_chunks(question, top_k=top_k)
+
     answer = ask_llm(question, chunks, model)
-    
+
+    if not answer:
+        raise RuntimeError(
+            "The language model did not return an answer. "
+            "Check the API key and model configuration."
+        )
+
     if return_sources:
-        return answer, chunks
+        return {
+            "answer": answer,
+            "sources": chunks,
+        }
+
     return answer
 def extract_json_report(output_path="report.json"):
     # list of fields to extract from the pdf

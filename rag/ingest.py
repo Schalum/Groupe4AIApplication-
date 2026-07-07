@@ -4,42 +4,53 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 
-def extract_text(pdf_path):
-    # open the pdf and read all pages
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc:
-        text = text + page.get_text()
-    doc.close()
-    return text
-
-
-def chunk_text(text):
-    # split text into smaller pieces
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50
-    )
-    chunks = splitter.split_text(text)
-    return chunks
-
-
 def get_embedder():
-    # load the embedding model
-    embedder = HuggingFaceEmbeddings(
+    return HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
-    return embedder
 
 
 def ingest_pdf(pdf_path):
-    # run all steps when a pdf is uploaded
-    text = extract_text(pdf_path)
-    chunks = chunk_text(text)
+    """
+    Reads each page separately and saves its page number
+    as metadata for every created chunk.
+    """
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=50,
+    )
+
+    all_chunks = []
+    all_metadata = []
+
+    with fitz.open(pdf_path) as pdf:
+        for page_number, page in enumerate(pdf, start=1):
+            page_text = page.get_text("text").strip()
+
+            if not page_text:
+                continue
+
+            page_chunks = splitter.split_text(page_text)
+
+            for chunk in page_chunks:
+                all_chunks.append(chunk)
+                all_metadata.append(
+                    {
+                        "page": page_number,
+                    }
+                )
+
+    if not all_chunks:
+        raise ValueError("No readable text found in the PDF.")
+
     embedder = get_embedder()
 
-    # save chunks as vectors to disk
-    vectorstore = FAISS.from_texts(chunks, embedder)
+    vectorstore = FAISS.from_texts(
+        all_chunks,
+        embedder,
+        metadatas=all_metadata,
+    )
+
     vectorstore.save_local("vectorstore/")
 
-    print("done - " + str(len(chunks)) + " chunks saved")
+    print(f"Done - {len(all_chunks)} chunks saved.")
