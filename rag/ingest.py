@@ -4,53 +4,64 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 
-def get_embedder():
-    return HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+# this function opens the pdf and reads each page separately
+# it remembers which page each piece of text came from
+def extract_pages(pdf_path):
+    doc = fitz.open(pdf_path)
+    pages = []
+    for i, page in enumerate(doc):
+        text = page.get_text()
+        page_number = i + 1
+        pages.append({"page": page_number, "text": text})
+    doc.close()
+    return pages
 
 
-def ingest_pdf(pdf_path):
-    """
-    Reads each page separately and saves its page number
-    as metadata for every created chunk.
-    """
+# this function cuts text into smaller pieces
+def chunk_text(text):
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
-        chunk_overlap=50,
+        chunk_overlap=50
     )
+    chunks = splitter.split_text(text)
+    return chunks
 
-    all_chunks = []
-    all_metadata = []
 
-    with fitz.open(pdf_path) as pdf:
-        for page_number, page in enumerate(pdf, start=1):
-            page_text = page.get_text("text").strip()
+# this function loads the embedding model
+def get_embedder():
+    embedder = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+    return embedder
 
-            if not page_text:
-                continue
 
-            page_chunks = splitter.split_text(page_text)
+# this is the main function that runs when a pdf is uploaded
+def ingest_pdf(pdf_path):
+    try:
+        # read each page separately
+        pages = extract_pages(pdf_path)
 
-            for chunk in page_chunks:
+        # collect all chunks and remember which page they came from
+        all_chunks = []
+        all_metadata = []
+
+        for page in pages:
+            chunks = chunk_text(page["text"])
+            for chunk in chunks:
                 all_chunks.append(chunk)
-                all_metadata.append(
-                    {
-                        "page": page_number,
-                    }
-                )
+                all_metadata.append({"page": page["page"]})
 
-    if not all_chunks:
-        raise ValueError("No readable text found in the PDF.")
+        # embed all chunks and save to disk with page metadata
+        embedder = get_embedder()
+        vectorstore = FAISS.from_texts(
+            all_chunks,
+            embedder,
+            metadatas=all_metadata
+        )
+        vectorstore.save_local("vectorstore/")
 
-    embedder = get_embedder()
+        print("done - " + str(len(all_chunks)) + " chunks saved")
 
-    vectorstore = FAISS.from_texts(
-        all_chunks,
-        embedder,
-        metadatas=all_metadata,
-    )
-
-    vectorstore.save_local("vectorstore/")
-
-    print(f"Done - {len(all_chunks)} chunks saved.")
+    except Exception as e:
+        print("error during ingest: " + str(e))
+        raise e

@@ -8,28 +8,20 @@ load_dotenv()
 
 def retrieve_chunks(question, top_k=6):
     embedder = get_embedder()
-
     vectorstore = FAISS.load_local(
         "vectorstore/",
         embedder,
         allow_dangerous_deserialization=True
     )
+    results = vectorstore.similarity_search(question, k=top_k)
 
-    results = vectorstore.similarity_search(
-        question,
-        k=top_k
-    )
-
+    # return both the text and the page number for each chunk
     chunks = []
-
     for result in results:
-        chunks.append(
-            {
-                "text": result.page_content,
-                "page": result.metadata.get("page", "?")
-            }
-        )
-
+        chunks.append({
+            "text": result.page_content,
+            "page": result.metadata.get("page", 1)
+        })
     return chunks
 
 
