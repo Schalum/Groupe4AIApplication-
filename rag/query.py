@@ -50,13 +50,19 @@ def ask_llm(question, chunks, model):
 
 
 def query_rag(question, model="qwen3-30b-a3b-instruct-2507", return_sources=False):
-    chunks = retrieve_chunks(question)
-    answer = ask_llm(question, chunks, model)
-    
-    if return_sources:
-        return answer, chunks
-    return answer
-def extract_json_report(output_path="report.json"):
+    try:
+        chunks = retrieve_chunks(question)
+        answer = ask_llm(question, chunks, model)
+        if return_sources:
+            return answer, chunks
+        return answer
+    except Exception as e:
+        error_message = "Something went wrong: " + str(e)
+        print(error_message)
+        if return_sources:
+            return error_message, []
+        return error_message
+def extract_json_report(output_path="report.json", model="qwen3-30b-a3b-instruct-2507"):
     # list of fields to extract from the pdf
     fields = {
         "CO2_emissions": "What are the CO2 emissions?",
@@ -73,7 +79,7 @@ def extract_json_report(output_path="report.json"):
     # ask the pipeline for each field
     report = {}
     for field, question in fields.items():
-        answer = query_rag(question)
+        answer = query_rag(question, model=model)
         report[field] = answer
 
     # save to json file

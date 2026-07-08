@@ -33,13 +33,13 @@ def get_embedder():
 
 
 def ingest_pdf(pdf_path):
-    # run all steps when a pdf is uploaded
-    text = extract_text(pdf_path)
-    chunks = chunk_text(text)
-    embedder = get_embedder()
-
-    # save chunks as vectors to disk
-    vectorstore = FAISS.from_texts(chunks, embedder)
-    vectorstore.save_local("vectorstore/")
-
-    print("done - " + str(len(chunks)) + " chunks saved")
+    try:
+        text = extract_text(pdf_path)
+        chunks = chunk_text(text)
+        embedder = get_embedder()
+        vectorstore = FAISS.from_texts(chunks, embedder)
+        vectorstore.save_local("vectorstore/")
+        print("done - " + str(len(chunks)) + " chunks saved")
+    except Exception as e:
+        print("error during ingest: " + str(e))
+        raise e
