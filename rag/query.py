@@ -6,20 +6,30 @@ from rag.ingest import get_embedder
 
 load_dotenv()
 
-
-def retrieve_chunks(question):
-    # load saved vectors and find the 3 most relevant chunks
+def retrieve_chunks(question, top_k=6):
     embedder = get_embedder()
+
     vectorstore = FAISS.load_local(
         "vectorstore/",
         embedder,
         allow_dangerous_deserialization=True
     )
-    results = vectorstore.similarity_search(question, k=3)
+
+    results = vectorstore.similarity_search(
+        question,
+        k=top_k
+    )
 
     chunks = []
+
     for result in results:
-        chunks.append(result.page_content)
+        chunks.append(
+            {
+                "text": result.page_content,
+                "page": result.metadata.get("page", "?")
+            }
+        )
+
     return chunks
 
 
@@ -27,7 +37,10 @@ def ask_llm(question, chunks, model):
     # combine all chunks into one block of text
     context = ""
     for chunk in chunks:
-        context = context + chunk + "\n\n"
+        context = "\n\n".join(
+            chunk["text"]
+            for chunk in chunks
+        )
 
     # build a better prompt
     prompt = "You are a helpful assistant answering questions about a sustainability report.\n"
@@ -49,20 +62,30 @@ def ask_llm(question, chunks, model):
     return response.choices[0].message.content
 
 
-def query_rag(question, model="qwen3-30b-a3b-instruct-2507", return_sources=False):
-    try:
-        chunks = retrieve_chunks(question)
-        answer = ask_llm(question, chunks, model)
-        if return_sources:
-            return answer, chunks
-        return answer
-    except Exception as e:
-        error_message = "Something went wrong: " + str(e)
-        print(error_message)
-        if return_sources:
-            return error_message, []
-        return error_message
-def extract_json_report(output_path="report.json", model="qwen3-30b-a3b-instruct-2507"):
+def query_rag(
+    question,
+    model="qwen3-30b-a3b-instruct-2507",
+    top_k=6,
+    return_sources=False,
+):
+    chunks = retrieve_chunks(question, top_k=top_k)
+
+    answer = ask_llm(question, chunks, model)
+
+    if not answer:
+        raise RuntimeError(
+            "The language model did not return an answer. "
+            "Check the API key and model configuration."
+        )
+
+    if return_sources:
+        return {
+            "answer": answer,
+            "sources": chunks,
+        }
+
+    return answer
+def extract_json_report(output_path="report.json"):
     # list of fields to extract from the pdf
     fields = {
         "CO2_emissions": "What are the CO2 emissions?",
@@ -79,7 +102,7 @@ def extract_json_report(output_path="report.json", model="qwen3-30b-a3b-instruct
     # ask the pipeline for each field
     report = {}
     for field, question in fields.items():
-        answer = query_rag(question, model=model)
+        answer = query_rag(question)
         report[field] = answer
 
     # save to json file
