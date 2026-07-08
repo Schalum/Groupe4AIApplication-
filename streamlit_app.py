@@ -37,15 +37,11 @@ if "pdf_loaded" not in st.session_state:
 if "pdf_name" not in st.session_state:
     st.session_state.pdf_name = None
 
-if "pdf_path" not in st.session_state:
-    st.session_state.pdf_path = None
-
 if "pdf_id" not in st.session_state:
     st.session_state.pdf_id = None
 
 if "json_content" not in st.session_state:
     st.session_state.json_content = None
-
 
 def safe_html(value):
     """Escape text before inserting it into HTML."""
@@ -314,11 +310,6 @@ footer{{visibility:hidden;}}
     -webkit-text-fill-color:{MAIN}!important;
 }}
 
-[data-testid="stChatInput"] textarea::placeholder{{
-    color:{SUB_COLOR}!important;
-    -webkit-text-fill-color:{SUB_COLOR}!important;
-}}
-
 [data-testid="stChatMessage"]{{
     background-color:{BG}!important;
     border:0.5px solid {BORDER}!important;
@@ -459,7 +450,6 @@ with st.sidebar:
 
                 st.session_state.pdf_loaded = True
                 st.session_state.pdf_name = safe_filename
-                st.session_state.pdf_path = str(pdf_path)
                 st.session_state.pdf_id = current_pdf_id
             except Exception as error:
                 st.error(f"Could not process the PDF: {error}")
