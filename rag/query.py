@@ -77,7 +77,7 @@ def query_rag(
         }
 
     return answer
-def extract_json_report(output_path="report.json"):
+def extract_json_report(output_path="report.json", model="qwen3-30b-a3b-instruct-2507"):
     # list of fields to extract from the pdf
     fields = {
         "CO2_emissions": "What are the CO2 emissions?",
@@ -94,7 +94,7 @@ def extract_json_report(output_path="report.json"):
     # ask the pipeline for each field
     report = {}
     for field, question in fields.items():
-        answer = query_rag(question)
+        answer = query_rag(question, model=model)
         report[field] = answer
 
     # save to json file
