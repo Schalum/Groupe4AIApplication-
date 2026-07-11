@@ -9,14 +9,14 @@ A RAG-based chatbot that lets users upload environmental sustainability reports 
 
 | Name | Role |
 |---|---|
-| Zahidul Alam | RAG pipeline, PDF processing, Docker |
+| Zahidul Alam Arnab | RAG pipeline, PDF processing, Docker |
 | Schalum Semenyo | GitHub, project management, documentation |
-| TTAmin | Streamlit UI, JSON export, frontend |
+| Amin Touati | Streamlit UI, JSON export, frontend |
 
 **Supervised by:** Dr. Debayan Banerjee · Prof. Dr. Ricardo Usbeck
 **Project board:** https://trello.com/b/wOgfu3P3/ai-based-application
 **GitHub:** https://github.com/Schalum/Groupe4AIApplication-
-
+**Presentation slides:** [View slides](Chat_with_a_PDF_Presentation.pdf)
 ---
 
 ## Features
