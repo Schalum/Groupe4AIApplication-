@@ -43,7 +43,7 @@ A RAG-based document intelligence app. Upload a sustainability report, ask quest
 | Vector store | FAISS | Lightweight, no server needed, saves to disk |
 | Language model | GWDG API — Qwen3-30B | University infrastructure, free for students |
 | UI | Streamlit | Rapid Python UI with built-in chat interface |
-| Packaging | Docker | One command to run on any machine |
+
 
 ---
 
