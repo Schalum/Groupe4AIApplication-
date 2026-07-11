@@ -9,7 +9,7 @@ A RAG-based chatbot that lets users upload environmental sustainability reports 
 
 | Name | Role |
 |---|---|
-| Zahidul Alam Arnab | RAG pipeline, PDF processing, Docker |
+| Zahidul Alam Arnab | RAG pipeline, PDF processing |
 | Schalum Semenyo | GitHub, project management, documentation |
 | Amin Touati | Streamlit UI, JSON export, frontend |
 
@@ -43,7 +43,6 @@ A RAG-based chatbot that lets users upload environmental sustainability reports 
 | Vector store | FAISS | Lightweight, no server needed, saves to disk |
 | Language model | GWDG API — Qwen3-30B | University infrastructure, free for students |
 | UI | Streamlit | Rapid Python UI with built-in chat interface |
-| Packaging | Docker | One command to run on any machine |
 
 ---
 
@@ -134,6 +133,7 @@ Opens at `http://localhost:8501`
 
 ## Project structure
 
+```
 Groupe4AIApplication-/
 ├── rag/
 │   ├── ingest.py          # PDF processing pipeline
@@ -142,12 +142,10 @@ Groupe4AIApplication-/
 │   ├── benchmark.py       # Benchmark script
 │   └── test_results.csv   # Benchmark results (benchmarking branch)
 ├── streamlit_app.py        # Web UI
-├── docker-compose.yml      # Container settings
 ├── requirements.txt        # Python dependencies
 ├── .env.example            # Environment variable template
 └── README.md
-
----
+```
 
 ## AI Tools Disclosure
 
